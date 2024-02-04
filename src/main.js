@@ -23,6 +23,7 @@ function searchImages(query) {
         .catch(error => {
             iziToast.error({title: 'Error', message: 'Failed to fetch images.'});
             console.error('Error fetching images:', error);
+            iziToast.destroy(document.querySelector('.iziToast-overlay'));
         });
 }
 
@@ -35,20 +36,31 @@ function displayImages(images) {
         return;
     }
 
-    const fragment = document.createDocumentFragment();
-
     images.forEach(image => {
         const div = document.createElement('div');
         div.className = 'image-card';
-        div.innerHTML = `<a href="${image.largeImageURL}" data-lightbox="image-set" data-title="${image.tags}">
-                            <img src="${image.webformatURL}" alt="${image.tags}">
-                         </a>
-                         <div class="info">Likes: ${image.likes}, Views: ${image.views}, Comments: ${image.comments}, Downloads: ${image.downloads}</div>`;
-        fragment.appendChild(div);
+        
+        const a = document.createElement('a');
+        a.href = image.largeImageURL;
+        a.dataset.lightbox = "image-set";
+        a.dataset.title = image.tags;
+
+        const img = document.createElement('img');
+        img.src = image.webformatURL;
+        img.alt = image.tags;
+        a.appendChild(img);
+        
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'info';
+        infoDiv.textContent = `Likes: ${image.likes}, Views: ${image.views}, Comments: ${image.comments}, Downloads: ${image.downloads}`;
+        
+        div.appendChild(a);
+        div.appendChild(infoDiv);
+        
+        gallery.appendChild(div);
     });
 
-    gallery.appendChild(fragment);
-
     // Re-initialize SimpleLightbox for the new set of links
-    new SimpleLightbox({elements: '#gallery a'}).refresh();
+    let lightbox = new SimpleLightbox({elements: '#gallery a'});
+    lightbox.refresh();
 }
