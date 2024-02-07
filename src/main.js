@@ -1,78 +1,87 @@
-document.getElementById('search-form').addEventListener('submit', function(e) {
+import iziToast from 'izitoast';
+import 'izitoast/dist/css/iziToast.min.css';
+import SimpleLightbox from 'simplelightbox';
+import 'simplelightbox/dist/simple-lightbox.min.css';
+
+const form = document.querySelector('#search-form'); // Змінено селектор
+const gallery = document.querySelector('.gallery');
+
+// Видалено змінну loader, оскільки вона не використовується в HTML
+
+const searchParams = {
+    key: '42183789-4564ae77348bbdba9cab87cc0',
+    image_type: 'photo',
+    orientation: 'horizontal',
+    safesearch: true,
+    q: '',
+}
+
+form.addEventListener('submit', e => {
     e.preventDefault();
-    const query = document.getElementById('query').value.trim();
-    if (!query) {
-        iziToast.warning({title: 'Warning', message: 'Please enter a search query.'});
-        return;
-    }
-    fetchImagesFromAPI(query);
+    // loader.style.display = 'block'; // Видалено для адаптації
+    const inputValue = document.querySelector('#query').value; // Виправлено отримання значення
+    searchParams.q = inputValue;
+    getPhotoByName()
+        .then(images => createGallery(images))
+        .catch(error => console.log(error));
+    e.target.reset();
 });
 
-let lightbox; // Глобальна змінна для екземпляра SimpleLightbox
-
-function fetchImagesFromAPI(query) {
-    const apiKey = '42183789-4564ae77348bbdba9cab87cc0';
-    const url = `https://pixabay.com/api/?key=${apiKey}&q=${encodeURIComponent(query)}&image_type=photo&orientation=horizontal&safesearch=true`;
-
-    showLoadingIndicator(true); // Показати індикатор завантаження
-
-    fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            displayImages(data.hits);
-            showLoadingIndicator(false); // Сховати індикатор завантаження
-        })
-        .catch(error => {
-            console.error('Error fetching images:', error);
-            iziToast.error({title: 'Error', message: 'Failed to fetch images.'});
-            showLoadingIndicator(false); // Сховати індикатор завантаження
-        });
+function getPhotoByName() {
+    const urlParams = new URLSearchParams(searchParams);
+    return fetch(`https://pixabay.com/api/?${urlParams}`)
+        .then(res => {
+        if (res.ok) {
+            return res.json();
+        } else {
+            throw new Error(res.status);
+        }
+    })
 }
 
-function displayImages(images) {
-    const gallery = document.getElementById('gallery');
-    gallery.innerHTML = '';
-
-    if (images.length === 0) {
-        iziToast.info({title: 'No results', message: 'Sorry, there are no images matching your search query. Please try again!'});
-        return;
-    }
-
-    images.forEach(image => {
-        const div = document.createElement('div');
-        div.className = 'image-card';
-        
-        const a = document.createElement('a');
-        a.href = image.largeImageURL;
-        a.dataset.lightbox = "image-set";
-        a.dataset.title = image.tags;
-
-        const img = document.createElement('img');
-        img.src = image.webformatURL;
-        img.alt = image.tags;
-        a.appendChild(img);
-        
-        const infoDiv = document.createElement('div');
-        infoDiv.className = 'info';
-        infoDiv.textContent = `Likes: ${image.likes}, Views: ${image.views}, Comments: ${image.comments}, Downloads: ${image.downloads}`;
-        
-        div.appendChild(a);
-        div.appendChild(infoDiv);
-        
-        gallery.appendChild(div);
-    });
-
-    if (!lightbox) {
-        lightbox = new SimpleLightbox({elements: '#gallery a'});
+function createGallery(images) {
+    if (images.hits.length === 0) {
+       iziToast.show({
+            message: 'Sorry, there are no images matching your search query. Please try again!',
+            messageColor: '#FFFFFF',
+            backgroundColor: '#EF4040',
+            position: 'topRight',
+            messageSize: '16px',
+            messageLineHeight: '24px',
+            maxWidth: '432px',
+       });
+        gallery.innerHTML = '';
     } else {
-        lightbox.refresh();
-    }
-}
+        const link = images.hits.map(image => `<a class="gallery-link" href="${image.largeImageURL}">
+        <img class="gallery-image"
+        src="${image.webformatURL}"
+        alt="${image.tags}">
+         </a>
+        <div class="img-content">
+        <div>
+        <h3>Likes</h3>
+        <p>${image.likes}</p>
+        </div>
 
-function showLoadingIndicator(show) {
-    if (show) {
-        iziToast.info({title: 'Searching', message: 'Fetching images...', timeout: false, overlay: true, id: 'loading'});
-    } else {
-        iziToast.destroy(document.querySelector('.iziToast-overlay'));
+        <div>
+        <h3>Views</h3>
+        <p>${image.views}</p>
+        </div>
+
+        <div>
+        <h3>Comments</h3>
+        <p>${image.comments}</p>
+        </div>
+
+        <div>
+        <h3>Downloads</h3>
+        <p>${image.downloads}</p>
+        </div>
+        </div>
+        `).join('');
+        gallery.innerHTML = link;
     }
+    let lightBox = new SimpleLightbox('.gallery-link');
+    lightBox.refresh();
+    // loader.style.display = 'none'; // Видалено для адаптації
 }
