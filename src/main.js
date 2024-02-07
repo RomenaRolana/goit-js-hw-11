@@ -8,28 +8,30 @@ document.getElementById('search-form').addEventListener('submit', function(e) {
     fetchImagesFromAPI(query);
 });
 
+let lightbox; // Глобальна змінна для екземпляра SimpleLightbox
+
 function fetchImagesFromAPI(query) {
     const apiKey = '42183789-4564ae77348bbdba9cab87cc0';
     const url = `https://pixabay.com/api/?key=${apiKey}&q=${encodeURIComponent(query)}&image_type=photo&orientation=horizontal&safesearch=true`;
 
-    iziToast.info({title: 'Searching', message: 'Fetching images...', timeout: false, overlay: true, id: 'loading'});
+    showLoadingIndicator(true); // Показати індикатор завантаження
 
     fetch(url)
         .then(response => response.json())
         .then(data => {
             displayImages(data.hits);
-            iziToast.destroy(document.querySelector('.iziToast-overlay'));
+            showLoadingIndicator(false); // Сховати індикатор завантаження
         })
         .catch(error => {
-            iziToast.error({title: 'Error', message: 'Failed to fetch images.'});
             console.error('Error fetching images:', error);
-            iziToast.destroy(document.querySelector('.iziToast-overlay'));
+            iziToast.error({title: 'Error', message: 'Failed to fetch images.'});
+            showLoadingIndicator(false); // Сховати індикатор завантаження
         });
 }
 
 function displayImages(images) {
     const gallery = document.getElementById('gallery');
-    gallery.innerHTML = ''; // Clear the gallery before adding new images
+    gallery.innerHTML = '';
 
     if (images.length === 0) {
         iziToast.info({title: 'No results', message: 'Sorry, there are no images matching your search query. Please try again!'});
@@ -60,10 +62,17 @@ function displayImages(images) {
         gallery.appendChild(div);
     });
 
-    initializeLightbox();
+    if (!lightbox) {
+        lightbox = new SimpleLightbox({elements: '#gallery a'});
+    } else {
+        lightbox.refresh();
+    }
 }
 
-function initializeLightbox() {
-    let lightbox = new SimpleLightbox({elements: '#gallery a'});
-    lightbox.refresh();
+function showLoadingIndicator(show) {
+    if (show) {
+        iziToast.info({title: 'Searching', message: 'Fetching images...', timeout: false, overlay: true, id: 'loading'});
+    } else {
+        iziToast.destroy(document.querySelector('.iziToast-overlay'));
+    }
 }
